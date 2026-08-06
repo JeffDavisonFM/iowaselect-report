@@ -1,0 +1,45 @@
+name: Deploy report to GitHub Pages
+
+# Publishes index.html to GitHub Pages on every push to main.
+# Uses the modern upload-pages-artifact + deploy-pages actions (no Jekyll),
+# which is more reliable than the classic "Deploy from a branch" pipeline.
+# To activate: GitHub repo -> Settings -> Pages -> Source -> "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; a newer push cancels an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site (repo root)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 600000        # 10 min; give the Pages backend room to finish
